@@ -4,7 +4,7 @@
 from telegram.ext import (
     Dispatcher, Filters,
     CommandHandler, MessageHandler,
-    CallbackQueryHandler,
+    CallbackQueryHandler, ConversationHandler
 )
 
 from dtb.settings import DEBUG
@@ -18,40 +18,42 @@ from tgbot.handlers.location import handlers as location_handlers
 from tgbot.handlers.onboarding import handlers as onboarding_handlers
 from tgbot.handlers.broadcast_message import handlers as broadcast_handlers
 from tgbot.main import bot
+from tgbot.conversation_handler import conversation_handler
 
 
 def setup_dispatcher(dp):
     """
     Adding handlers for events from Telegram
     """
+    dp.add_handler(conversation_handler)
     # onboarding
-    dp.add_handler(CommandHandler("start", onboarding_handlers.command_start))
-
-    # admin commands
-    dp.add_handler(CommandHandler("admin", admin_handlers.admin))
-    dp.add_handler(CommandHandler("stats", admin_handlers.stats))
-    dp.add_handler(CommandHandler('export_users', admin_handlers.export_users))
-
-    # location
-    dp.add_handler(CommandHandler("ask_location", location_handlers.ask_for_location))
-    dp.add_handler(MessageHandler(Filters.location, location_handlers.location_handler))
-
-    # secret level
-    dp.add_handler(CallbackQueryHandler(onboarding_handlers.secret_level, pattern=f"^{SECRET_LEVEL_BUTTON}"))
-
-    # broadcast message
-    dp.add_handler(
-        MessageHandler(Filters.regex(rf'^{broadcast_command}(/s)?.*'),
-                       broadcast_handlers.broadcast_command_with_message)
-    )
-    dp.add_handler(
-        CallbackQueryHandler(broadcast_handlers.broadcast_decision_handler, pattern=f"^{CONFIRM_DECLINE_BROADCAST}")
-    )
-
-    # files
-    dp.add_handler(MessageHandler(
-        Filters.animation, files.show_file_id,
-    ))
+    # dp.add_handler(CommandHandler("start", onboarding_handlers.command_start))
+    #
+    # # admin commands
+    # dp.add_handler(CommandHandler("admin", admin_handlers.admin))
+    # dp.add_handler(CommandHandler("stats", admin_handlers.stats))
+    # dp.add_handler(CommandHandler('export_users', admin_handlers.export_users))
+    #
+    # # location
+    # dp.add_handler(CommandHandler("ask_location", location_handlers.ask_for_location))
+    # dp.add_handler(MessageHandler(Filters.location, location_handlers.location_handler))
+    #
+    # # secret level
+    # dp.add_handler(CallbackQueryHandler(onboarding_handlers.secret_level, pattern=f"^{SECRET_LEVEL_BUTTON}"))
+    #
+    # # broadcast message
+    # dp.add_handler(
+    #     MessageHandler(Filters.regex(rf'^{broadcast_command}(/s)?.*'),
+    #                    broadcast_handlers.broadcast_command_with_message)
+    # )
+    # dp.add_handler(
+    #     CallbackQueryHandler(broadcast_handlers.broadcast_decision_handler, pattern=f"^{CONFIRM_DECLINE_BROADCAST}")
+    # )
+    #
+    # # files
+    # dp.add_handler(MessageHandler(
+    #     Filters.animation, files.show_file_id,
+    # ))
 
     # handling errors
     dp.add_error_handler(error.send_stacktrace_to_tg_chat)

@@ -22,8 +22,17 @@ class CreateUpdateTracker(CreateTracker):
 
 class GetOrNoneManager(models.Manager):
     """returns none if object doesn't exist else model instance"""
+
     def get_or_none(self, **kwargs):
         try:
             return self.get(**kwargs)
         except ObjectDoesNotExist:
             return None
+
+
+class BaseModel(models.Model):
+    created_ad = models.DateTimeField(auto_now_add=True)
+    updated_ad = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
