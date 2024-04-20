@@ -61,10 +61,12 @@ conversation_handler = ConversationHandler(
             MessageHandler(Filters.regex(
                 "^(📱 Raqamni o'zgartirish)$"), handlers.send_phone_number_handler),
 
-            MessageHandler(Filters.regex("^(🏘 Bosh menu)$"),
-                           handlers.back_to_home_handler),
+            MessageHandler(Filters.regex(
+                "^(🏘 Bosh menu)$"), handlers.back_to_home_handler),
         ],
         states.BASKET_STATE: [
+            MessageHandler(Filters.regex(
+                "^(🔄 Tozalash)$"), handlers.clear_card),
             MessageHandler(Filters.regex(
                 "^(🚖 Buyurtma berish)$"), handlers.placing_order_handler),
             MessageHandler(Filters.regex(

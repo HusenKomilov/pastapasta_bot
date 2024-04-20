@@ -1,5 +1,6 @@
 from django.db import models
 from utils.models import BaseModel
+from users.models import User
 
 
 class Language(BaseModel):
@@ -35,3 +36,18 @@ class Product(BaseModel):
 
     def __str__(self):
         return self.title
+
+
+class Card(BaseModel):
+    product_title = models.CharField(max_length=128)
+    product_price = models.IntegerField(default=0)
+    quantity = models.IntegerField(default=0)
+    total_price = models.IntegerField(default=0)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.user.first_name
+
+
+class Order(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)

@@ -11,7 +11,7 @@ from tgbot.handlers.languages import get_text
 from tgbot.handlers.onboarding import keyboards
 
 from users.models import User
-from product.models import Category, Product
+from product.models import Category, Product, Card, Order
 
 
 def command_start(update: Update, context: CallbackContext) -> None:
@@ -31,7 +31,7 @@ def send_phone_number_handler(update: Update, context: CallbackContext):
     user.phone_number = user_phone
     user.save()
 
-    update.message.reply_text(text=get_text("go_menu"), reply_markup=keyboards.menu_button())
+    update.message.reply_text(text=get_text("go_menu"), reply_markup=keyboards.main_menyu())
     return ConversationHandler.END
 
 
@@ -54,7 +54,6 @@ def category_menu(update: Update, context: CallbackContext):
     text = update.message.text
     try:
         category_id = Category.objects.get(title=text).id
-
         update.message.reply_text("Mahsulotlarni tanlang", reply_markup=keyboards.product_manu(category_id))
         return states.PRODUCT_STATE
 
@@ -69,83 +68,92 @@ def product_menu(update: Update, context: CallbackContext):
     # print(product_title)
     try:
         product = Product.objects.get(title=product_title)
-        if context.user_data.get("card"):
-            context.user_data['card'][product.title] = {
-                "product_id": product.id,
-                "product_price": product.price,
-            }
-        else:
-            context.user_data["card"] = {
-                product.title: {
-                    "product.id": product.id,
-                    "product_price": product.price
-                }
-            }
+        context.user_data["card"] = {
+            "product_title": product.title,
+            "product_price": product.price,
+            "product_weight": product.weight
+        }
         text = f"""{product_title}\n\n {product.description} \n\n 
         Vazni: {product.weight} \n\n Narxi: {product.price}"""
         context.bot.send_message(chat_id, text, reply_markup=keyboards.quantity_product())
         return states.QUANTITY_STATE
     except Exception as e:
+        print(e)
         update.message.reply_text("Bunaqa mahsulot yo'q", reply_markup=keyboards.menu_button())
-
-
-def product_quantity(update: Update, context: CallbackContext):
-    quantity = update.message.text
-    if quantity.isdigit():
-
-        product_title = list(context.user_data["card"])[-1]
-        product = Product.objects.get(title=product_title)
-        if context.user_data.get("card"):
-            context.user_data["card"][product.title] = {
-                "product_id": product.id,
-                "product_price": product.price,
-                "quantity": quantity
-            }
-        else:
-            context.user_data["card"] = {
-                product.title: {
-                    "product_id": product.id,
-                    "product_price": product.price,
-                    "quantity": quantity
-                }
-            }
-
-        update.message.reply_text("Ajoyib tanlov, biron narsa yana buyurtma qilamizmi?",
-                                  reply_markup=keyboards.menu_button())
-        return states.CATEGORY_STATE
-    else:
-        pass
 
 
 # Error handler
 def back_to_product_menu(update: Update, context: CallbackContext):
     chat_id = update.message.chat.id
-    category_id = context.user_data['category_id']
-    context.user_data['product_title'] = ""
-    context.user_data['product_quantity'] = 0
-    context.bot.send_message(chat_id, "Mahsulotlarni tanlang", reply_markup=keyboards.product_manu(category_id))
+    print(context.user_data)
+
+    # category_id = context.user_data['card']['category_id']
+    # context.user_data['card']['product_title'] = ""
+    # context.user_data['card']['product_quantity'] = 0
+    # context.bot.send_message(chat_id, "Mahsulotlarni tanlang", reply_markup=keyboards.product_manu(category_id))
+
+
+def product_quantity(update: Update, context: CallbackContext):
+    quantity = update.message.text
+    chat_id = int(update.message.chat.id)
+    if quantity.isdigit():
+        a = list(context.user_data.values())[0]
+        user = User.objects.get(user_id=chat_id)
+        product_title = a['product_title']
+        product_price = int(a["product_price"])
+        total_price = product_price * int(quantity)
+        card, created = Card.objects.get_or_create(product_title=product_title, user=user)
+        if created:
+            card.product_price = product_price
+            card.quantity = int(quantity)
+            card.total_price = total_price
+            card.save()
+        else:
+            card.product_price = product_price
+            card.quantity = int(quantity)
+            card.total_price = total_price
+            card.save()
+
+        update.message.reply_text("Ajoyib tanlov, biron narsa yana buyurtma qilamizmi?",
+                                  reply_markup=keyboards.menu_button())
+        return states.CATEGORY_STATE
+
+    else:
+        pass
 
 
 def order_handler(update: Update, context: CallbackContext):
     chat_id = update.message.chat.id
-    print(1233)
-    paket = f"2. 🛍 Пакет 1 x 1 000 so'm = 1 000 so'm"
     try:
-        card = [context.user_data['card']]
-        for i in card:
-            card
-        # title = data["product_title"]
-        # product_price = int(title["product_price"])
-        # quantity = int(title["product_quantity"])
-        # total_price = product_price * quantity
-        # text = f"""Savatingizda \n\n {list(title.keys())} \n{quantity}x{product_price}={total_price}"""
-        # text += paket
-        # context.bot.send_message(
-        #     chat_id=chat_id, text=text, reply_markup=keyboards.basket_button())
+        user = User.objects.get(user_id=chat_id)
+        product = Card.objects.filter(user=user)
+        text = "Savatingiz: \n\n\n"
+        a = 0
+        jami = 0
+        for i in product:
+            a += 1
+            text += f"<b>{a}. {i.product_title}</b>\n"
+            text += f"{i.product_price}*{i.quantity}={i.total_price}\n\n"
+            jami += i.total_price
+
+        text += f"🛍 Пакет 1 x 1 000 so'm = 1 000 so'm\n\n <b>Jami: {jami + 1000}</b>"
+
+        context.bot.send_message(
+            chat_id=chat_id, text=text, reply_markup=keyboards.basket_button(), parse_mode="HTML")
         return states.BASKET_STATE
     except Exception as e:
         context.bot.send_message(chat_id, get_text("basket"), reply_markup=keyboards.basket_button())
         return states.BASKET_STATE
+
+
+def clear_card(update: Update, context: CallbackContext):
+    chat_id = update.message.chat.id
+    user = User.objects.get(user_id=chat_id)
+    try:
+        Card.objects.filter(user=user).delete()
+    except Exception as e:
+        pass
+    context.bot.send_message(chat_id, "Savatingiz bo'shatildi", reply_markup=keyboards.main_menyu())
 
 
 def backet_pakect(update: Update, context: CallbackContext):
@@ -236,12 +244,16 @@ def placing_order_handler(update: Update, context: CallbackContext):
 
 def delivery_handler(update: Update, context: CallbackContext):
     chat_id = update.message.chat.id
+    user = User.objects.get(user_id=chat_id)
+    Order.objects.create(user=user)
     context.bot.send_message(chat_id=chat_id, text=get_text("delivery_car"))
     return ConversationHandler.END
 
 
 def take_away_handler(update: Update, context: CallbackContext):
     chat_id = update.message.chat.id
+    user = User.objects.get(user_id=chat_id)
+    Order.objects.create(user=user)
     context.bot.send_message(chat_id=chat_id, text=get_text("take_away"))
 
 
