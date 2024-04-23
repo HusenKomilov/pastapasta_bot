@@ -1,4 +1,5 @@
 from telegram.ext import ConversationHandler, MessageHandler, Filters, CommandHandler, CallbackQueryHandler
+from telegram import MessageEntity
 from tgbot.handlers.onboarding import handlers
 from tgbot.handlers.utils import states
 
@@ -19,18 +20,18 @@ conversation_handler = ConversationHandler(
             "^(🍴 Menyu)$"), handlers.menu_handler),
         MessageHandler(Filters.regex(
             "⚙️ Sozlamalar"), handlers.settings_handler),
-        MessageHandler(Filters.all, handlers.back_to_home_handler)
     ],
     states={
         states.PHONE_STATE: [
+            MessageHandler(Filters.text & Filters.entity(MessageEntity.PHONE_NUMBER),
+                           handlers.send_phone_entity_handler),
             MessageHandler(Filters.contact, handlers.send_phone_number_handler),
+            MessageHandler(Filters.all, handlers.send_phone_resent_handler)
         ],
         states.MENU_STATE: [
             MessageHandler(Filters.regex("^(🍴 Menyu)$"), handlers.menu_handler),
             MessageHandler(Filters.location, handlers.location_handler),
             MessageHandler(Filters.regex("^(📥 Savat)$"), handlers.order_handler),
-            MessageHandler(Filters.regex("^(🏘 Bosh menu)$"),
-                           handlers.back_to_home_handler),
         ],
         states.CATEGORY_STATE: [
             MessageHandler(Filters.regex("^(📥 Savat)$"), handlers.order_handler),
@@ -50,19 +51,14 @@ conversation_handler = ConversationHandler(
                 "^(😐Yoqmadi ⭐️⭐️⭐️|🙁Yomon ⭐️⭐️|😤Juda yomon 👎)$"), handlers.comment_bad_result_handler),
             MessageHandler(Filters.regex("^(🏘 Bosh menu)$"),
                            handlers.back_to_home_handler),
-            MessageHandler(Filters.all, handlers.back_to_home_handler)
         ],
         states.SETTINGS_STATE: [
             MessageHandler(Filters.regex(
                 "^🌐 Tilni tanlash$"), handlers.language_handler),
             CallbackQueryHandler(handlers.lang_uz_handler, pattern="^uz$"),
             CallbackQueryHandler(handlers.lang_ru_handler, pattern="^ru$"),
-
             MessageHandler(Filters.regex(
                 "^(📱 Raqamni o'zgartirish)$"), handlers.send_phone_number_handler),
-
-            MessageHandler(Filters.regex(
-                "^(🏘 Bosh menu)$"), handlers.back_to_home_handler),
         ],
         states.BASKET_STATE: [
             MessageHandler(Filters.regex(
@@ -74,9 +70,10 @@ conversation_handler = ConversationHandler(
             MessageHandler(Filters.regex(
                 "^(🏃 Olib ketish)$"), handlers.take_away_handler),
             MessageHandler(Filters.regex("^🛍 Пакет$"), handlers.backet_pakect),
-            MessageHandler(Filters.regex("^(🏘 Bosh menu)$"),
-                           handlers.back_to_home_handler),
         ]
     },
-    fallbacks=[MessageHandler(Filters.all, handlers.back_to_home_handler)]
+    fallbacks=[
+        MessageHandler(Filters.regex("^(🏘 Bosh menu)$"), handlers.back_to_home_handler),
+        MessageHandler(Filters.all, handlers.back_to_home_handler),
+    ]
 )

@@ -32,7 +32,20 @@ def send_phone_number_handler(update: Update, context: CallbackContext):
     user.save()
 
     update.message.reply_text(text=get_text("go_menu"), reply_markup=keyboards.main_menyu())
-    return ConversationHandler.END
+
+
+def send_phone_entity_handler(update: Update, context: CallbackContext):
+    phone_number_entity = list(filter(lambda e: e.type == "phone_number", update.message.entities))[0]
+    phone_number = update.message.text[
+                   phone_number_entity.offset:phone_number_entity.offset + phone_number_entity.length]
+    user = User.get_user_by_username_or_user_id(update.message.from_user.id)
+    user.phone_number = phone_number
+    user.save()
+
+
+def send_phone_resent_handler(update: Update, context: CallbackContext):
+    update.message.reply_text("Telefon raqamingiz yozing yoki Pastdagi tugmani bosing",
+                              reply_markup=keyboards.send_contact())
 
 
 def menu_handler(update: Update, context: CallbackContext):
@@ -54,6 +67,7 @@ def category_menu(update: Update, context: CallbackContext):
     text = update.message.text
     try:
         category_id = Category.objects.get(title=text).id
+
         update.message.reply_text("Mahsulotlarni tanlang", reply_markup=keyboards.product_manu(category_id))
         return states.PRODUCT_STATE
 
@@ -65,7 +79,7 @@ def category_menu(update: Update, context: CallbackContext):
 def product_menu(update: Update, context: CallbackContext):
     chat_id = update.message.chat.id
     product_title = update.message.text
-    # print(product_title)
+    print(context.user_data)
     try:
         product = Product.objects.get(title=product_title)
         context.user_data["card"] = {
@@ -86,7 +100,7 @@ def product_menu(update: Update, context: CallbackContext):
 def back_to_product_menu(update: Update, context: CallbackContext):
     chat_id = update.message.chat.id
     print(context.user_data)
-
+    return product_menu(update, context)
     # category_id = context.user_data['card']['category_id']
     # context.user_data['card']['product_title'] = ""
     # context.user_data['card']['product_quantity'] = 0
