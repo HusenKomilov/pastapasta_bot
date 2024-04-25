@@ -67,7 +67,6 @@ def category_menu(update: Update, context: CallbackContext):
     text = update.message.text
     try:
         category_id = Category.objects.get(title=text).id
-
         update.message.reply_text("Mahsulotlarni tanlang", reply_markup=keyboards.product_manu(category_id))
         return states.PRODUCT_STATE
 
