@@ -35,6 +35,7 @@ class TelegramBotWebhookView(View):
             process_telegram_event.delay(json.loads(request.body))
 
         # e.g. remove buttons, typing event
+        print("ok")
         return JsonResponse({"ok": "POST request processed"})
 
     def get(self, request, *args, **kwargs):  # for debug

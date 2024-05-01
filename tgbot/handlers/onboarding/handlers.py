@@ -30,8 +30,8 @@ def send_phone_number_handler(update: Update, context: CallbackContext):
     user_phone = update.message.contact.phone_number
     user.phone_number = user_phone
     user.save()
-
     update.message.reply_text(text=get_text("go_menu"), reply_markup=keyboards.main_menyu())
+    return ConversationHandler.END
 
 
 def send_phone_entity_handler(update: Update, context: CallbackContext):
@@ -41,6 +41,9 @@ def send_phone_entity_handler(update: Update, context: CallbackContext):
     user = User.get_user_by_username_or_user_id(update.message.from_user.id)
     user.phone_number = phone_number
     user.save()
+    update.message.reply_text(text=get_text("go_menu"), reply_markup=keyboards.main_menyu())
+
+    return ConversationHandler.END
 
 
 def send_phone_resent_handler(update: Update, context: CallbackContext):
